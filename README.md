@@ -33,3 +33,32 @@ Since this uses standard C++ threads, you can compile it with any modern compile
 ```bash
 g++ -std=c++17 main.cpp -o threadpool -lpthread
 ./threadpool
+```
+
+## Sample Output:
+```
+Enqueuing task: T#1 (Priority: 1)
+Enqueuing task: T#2 (Priority: 9)
+Executing task : T#1
+Enqueuing task: T#3 (Priority: 8)
+Enqueuing task: T#4 (Priority: 7)
+Enqueuing task: T#5 (Priority: 6)
+Enqueuing task: T#6 (Priority: 5)
+Enqueuing task: T#7 (Priority: 4)
+Enqueuing task: T#8 (Priority: 3)
+Executing task : T#8
+Product: 120
+Executing task : T#7
+Sum: 6
+Executing task : T#6
+Sum: 15
+Product: Executing task : T#5
+6
+Executing task : T#4
+Product: 120
+Executing task : T#3
+Sum: 6
+Executing task : T#2
+Sum: 15
+Product: 6
+```
