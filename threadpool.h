@@ -1,63 +1,66 @@
+#ifndef THREAD_POOL_H
+#define THREAD_POOL_H
+
 #include <vector>
 #include <queue>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
 #include <functional>
+
 using namespace std;
 
 class ThreadPool {
 private: 
-queue<function<void()>> task_queue;
-vector<jthread> threads;
-mutex queue_lock;
-condition_variable cv;
-bool stop;
+    queue<function<void()>> task_queue;
+    vector<thread> threads;
+    mutex queue_lock;
+    condition_variable cv;
+    bool stop;
 
 public:
-int size;
+    ThreadPool(int size) {
+        this->stop = false;
+        for(int i = 0; i < size; i++) {
+            threads.push_back(thread([this](){
+                for(;;) {
+                    function<void()> task;
+                    {
+                        unique_lock<mutex> lk(this->queue_lock);
+                        cv.wait(lk, [this](){ 
+                            return this->stop || !this->task_queue.empty(); 
+                        });
 
-ThreadPool(int size) {
-  this->stop = false;
-  for(int i = 0; i < size; i++)
-    {
-      threads.push_back(jthread([this](){
-        for(;;)
-          {
-            function<void()>task;
-            {
-              unique_lock<mutex> lk(this->queue_lock);
-              cv.wait(lk,
-                [this](){ 
-                return this->stop || this->task_queue.size() > 0;
-              });
+                        if(this->stop && this->task_queue.empty()) return;
+                        
+                        task = move(this->task_queue.front());
+                        this->task_queue.pop();
+                    }
+                    task();
+                }
+            }));
+        }
+    }
 
-              //gracious exit
-              if(this->stop && this->task_queue.size() == 0)
-                return;
-              
-              task = task_queue.move(this->task_queue.front());
-              task_queue.pop();
-            }
+    void add_task(function<void(vector<int>)> task_func, vector<int> args) {
+        {
+            unique_lock<mutex> lk(this->queue_lock);
+            if(stop) return;
+            task_queue.push([task_func, args](){ task_func(args); });
+        }
+        cv.notify_one();
+    }
 
-            task();
-          }
-      })
+    ~ThreadPool() {
+        {
+            unique_lock<mutex> lk(this->queue_lock);
+            stop = true;
+        }
+        cv.notify_all();
+        for(thread &t : threads) {
+            t.join();
+        }
     }
 };
 
-void enqueue() {
-  
-}
-
-~ThreadPool()
-{
-  
-}
-
-void add_task(task t)
-{
-  
-}
-
-}
+#endif
