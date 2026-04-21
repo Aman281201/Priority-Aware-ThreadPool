@@ -35,6 +35,17 @@ g++ -std=c++17 main.cpp -o threadpool -lpthread
 ./threadpool
 ```
 
+Using Makefile
+
+to compile and link
+```bash
+make all
+```
+to run
+```bash
+make run
+```
+
 ## Sample Output:
 ```
 Enqueuing task: T#1 (Priority: 1)
