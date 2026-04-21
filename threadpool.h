@@ -58,15 +58,15 @@ public:
         }
     }
 
-    void add_task(string name, int priority, function<void(vector<int>)> task_func, vector<int> args) {
+    void add_task(string name, int priority, function<void(vector<int>, string)> task_func, vector<int> args) {
         {
             unique_lock<mutex> lk(this->queue_lock);
             if(stop) return;
             
             cout << "Enqueuing task: " << name << " (Priority: " << priority << ")" << endl;
             
-            task_queue.push(Task(name, priority, [task_func, args](){ 
-                task_func(args); 
+            task_queue.push(Task(name, priority, [task_func, args, name](){ 
+                task_func(args, name); 
             }));
         }
         cv.notify_one();
