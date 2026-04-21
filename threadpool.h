@@ -7,12 +7,28 @@
 #include <mutex>
 #include <condition_variable>
 #include <functional>
+#include <string>
+#include <iostream>
 
 using namespace std;
 
+class Task {
+public:
+    string name;
+    int priority;
+    function<void()> func;
+
+    Task(string n, int p, function<void()> f) : name(n), priority(p), func(f) {}
+
+    // lower priority number means higher task priority.
+    bool operator<(const Task& other) const {
+        return priority > other.priority;
+    }
+};
+
 class ThreadPool {
 private: 
-    queue<function<void()>> task_queue;
+    priority_queue<Task> task_queue;
     vector<thread> threads;
     mutex queue_lock;
     condition_variable cv;
@@ -24,7 +40,7 @@ public:
         for(int i = 0; i < size; i++) {
             threads.push_back(thread([this](){
                 for(;;) {
-                    function<void()> task;
+                    function<void()> task_func;
                     {
                         unique_lock<mutex> lk(this->queue_lock);
                         cv.wait(lk, [this](){ 
@@ -33,20 +49,25 @@ public:
 
                         if(this->stop && this->task_queue.empty()) return;
                         
-                        task = move(this->task_queue.front());
+                        task_func = move(this->task_queue.top().func);
                         this->task_queue.pop();
                     }
-                    task();
+                    task_func();
                 }
             }));
         }
     }
 
-    void add_task(function<void(vector<int>)> task_func, vector<int> args) {
+    void add_task(string name, int priority, function<void(vector<int>)> task_func, vector<int> args) {
         {
             unique_lock<mutex> lk(this->queue_lock);
             if(stop) return;
-            task_queue.push([task_func, args](){ task_func(args); });
+            
+            cout << "Enqueuing task: " << name << " (Priority: " << priority << ")" << endl;
+            
+            task_queue.push(Task(name, priority, [task_func, args](){ 
+                task_func(args); 
+            }));
         }
         cv.notify_one();
     }
